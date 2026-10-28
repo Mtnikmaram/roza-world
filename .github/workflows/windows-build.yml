@@ -49,7 +49,7 @@ jobs:
           $pck = Join-Path $PWD "build\RozaWorld.pck"
           Write-Host "Using Godot: $godot"
           Write-Host "Export target: $pck"
-          & $godot --headless --path . --verbose --log-file godot-export.log --export-pack "Windows Desktop" "$pck"
+          & $godot --headless --path . --verbose --log-file godot-export.log --export-pack '"Windows Desktop"' "$pck"
           $code = $LASTEXITCODE
           Write-Host "Godot process exit code: $code"
           if (Test-Path godot-export.log) { Get-Content godot-export.log }
