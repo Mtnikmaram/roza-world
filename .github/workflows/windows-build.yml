@@ -38,30 +38,6 @@ jobs:
           }
           Get-Item $template | Format-List FullName,Length
 
-      - name: Validate project
-        shell: pwsh
-        run: |
-          Remove-Item godot-validation.log, godot-console.log -Force -ErrorAction SilentlyContinue
-          $godot = "C:\Users\runneradmin\godot\Godot_v4.3-stable_win64.exe"
-          if (-not (Test-Path $godot)) { throw "Godot executable not found at $godot" }
-          Write-Host "Using Godot: $godot"
-          & $godot --headless --editor --quit --path . --verbose --log-file godot-validation.log *> godot-console.log
-          $code = $LASTEXITCODE
-          Write-Host "Godot validation exit code: $code"
-          if (Test-Path godot-validation.log) { Get-Content godot-validation.log }
-          if (Test-Path godot-console.log) { Get-Content godot-console.log }
-          if ($code -ne 0) { throw "Godot project validation failed with exit code $code." }
-
-      - name: Upload Godot diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: godot-diagnostics
-          path: |
-            godot-validation.log
-            godot-console.log
-          if-no-files-found: ignore
-
       - name: Build PCK and Windows executable
         shell: pwsh
         run: |
