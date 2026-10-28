@@ -42,7 +42,8 @@ jobs:
         shell: pwsh
         run: |
           Remove-Item godot-validation.log, godot-console.log -Force -ErrorAction SilentlyContinue
-          & godot --headless --editor --quit --path . --verbose --log-file godot-validation.log 2>&1 | Tee-Object -FilePath godot-console.log
+          $godot = (Get-Command godot).Source
+          & $godot --headless --editor --quit --path . --verbose --log-file godot-validation.log 2>&1 | Tee-Object -FilePath godot-console.log
           $code = $LASTEXITCODE
           Write-Host "Godot validation exit code: $code"
           if (Test-Path godot-validation.log) { Get-Content godot-validation.log }
@@ -63,8 +64,9 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force build | Out-Null
           Remove-Item -Path build\* -Force -Recurse -ErrorAction SilentlyContinue
-          Remove-Item godot-export.log -Force -ErrorAction SilentlyContinue
-          & godot --headless --path . --verbose --log-file godot-export.log --export-pack "Windows Desktop" "$PWD\build\RozaWorld.pck" 2>&1 | Tee-Object -FilePath godot-export-console.log
+          Remove-Item godot-export.log, godot-export-console.log -Force -ErrorAction SilentlyContinue
+          $godot = (Get-Command godot).Source
+          & $godot --headless --path . --verbose --log-file godot-export.log --export-pack "Windows Desktop" "$PWD\build\RozaWorld.pck" 2>&1 | Tee-Object -FilePath godot-export-console.log
           $code = $LASTEXITCODE
           Write-Host "Godot export exit code: $code"
           if ($code -ne 0) { throw "Godot PCK export failed with exit code $code." }
