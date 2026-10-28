@@ -19,29 +19,47 @@ jobs:
           use-dotnet: false
           include-templates: true
 
+      - name: Ensure Windows export template
+        shell: pwsh
+        run: |
+          $templateDir = Join-Path $env:APPDATA "Godot/export_templates/4.3.stable"
+          New-Item -ItemType Directory -Force $templateDir | Out-Null
+          $template = Join-Path $templateDir "windows_release_x86_64.exe"
+          if (!(Test-Path $template)) {
+            $zip = Join-Path $env:TEMP "godot_export_templates.tpz"
+            Invoke-WebRequest -Uri "https://github.com/godotengine/godot-builds/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz" -OutFile $zip
+            $extract = Join-Path $env:TEMP "godot_templates"
+            if (Test-Path $extract) { Remove-Item $extract -Recurse -Force }
+            New-Item -ItemType Directory -Force $extract | Out-Null
+            Expand-Archive -Path $zip -DestinationPath $extract -Force
+            $found = Get-ChildItem -Path $extract -Recurse -Filter "windows_release_x86_64.exe" -File | Select-Object -First 1
+            if ($null -eq $found) { throw "Windows Godot export template was not found in the downloaded template package." }
+            Copy-Item $found.FullName $template -Force
+          }
+          Get-Item $template | Format-List FullName,Length
+
       - name: Import project
+        shell: pwsh
         run: godot --headless --editor --quit
 
       - name: Export Windows
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force build | Out-Null
-          godot --headless --path . --export-release "Windows Desktop" "build/RozasWorld.exe"
+          godot --headless --path . --verbose --export-release "Windows Desktop" "build/RozasWorld.exe"
 
       - name: Verify and normalize build
         shell: pwsh
         run: |
           $expected = Join-Path $PWD "build/RozasWorld.exe"
           if (!(Test-Path $expected)) {
-            $exe = Get-ChildItem -Path $PWD -Recurse -Filter *.exe -File |
+            Write-Host "Export output missing. Current build directory:"
+            if (Test-Path "build") { Get-ChildItem -Path build -Recurse -Force | Select-Object FullName,Length }
+            Write-Host "Possible executables in workspace:"
+            Get-ChildItem -Path $PWD -Recurse -Filter *.exe -File |
               Where-Object { $_.FullName -notmatch '\\.godot\\' -and $_.Name -notmatch '^godot' } |
-              Select-Object -First 1
-            if ($null -eq $exe) {
-              Write-Host "No executable found. Repository/build tree:"
-              Get-ChildItem -Path $PWD -Recurse -File | Select-Object FullName,Length
-              throw "Windows executable was not produced."
-            }
-            Copy-Item $exe.FullName $expected -Force
+              Select-Object FullName,Length
+            throw "Windows executable was not produced."
           }
           Get-Item $expected | Format-List FullName,Length
 
