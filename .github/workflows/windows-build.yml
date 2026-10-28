@@ -1,0 +1,36 @@
+name: Build Roza's World for Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.3.0
+          use-dotnet: false
+
+      - name: Import project
+        run: godot --headless --editor --quit
+
+      - name: Export Windows
+        run: godot --headless --path . --export-release "Windows Desktop" build/RozasWorld.exe
+
+      - name: Package game
+        shell: pwsh
+        run: Compress-Archive -Path build/* -DestinationPath RozaWorld-Windows.zip -Force
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: RozaWorld-Windows
+          path: RozaWorld-Windows.zip
+          if-no-files-found: error
