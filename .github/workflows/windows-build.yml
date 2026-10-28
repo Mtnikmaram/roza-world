@@ -40,32 +40,34 @@ jobs:
 
       - name: Import project
         shell: pwsh
-        run: godot --headless --editor --quit
+        run: godot --headless --editor --quit --path .
 
       - name: Export Windows
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force build | Out-Null
-          godot --headless --path . --verbose --export-release "Windows Desktop" "build/RozasWorld.exe"
+          Remove-Item -Path build\* -Force -Recurse -ErrorAction SilentlyContinue
+          godot --headless --path . --export-release "Windows Desktop" "$PWD\build\RozasWorld.exe"
+          if ($LASTEXITCODE -ne 0) { throw "Godot export failed with exit code $LASTEXITCODE" }
+          Write-Host "=== BUILD DIRECTORY ==="
+          Get-ChildItem -Path build -Recurse -Force | Select-Object FullName,Length
 
-      - name: Verify and normalize build
+      - name: Verify Windows executable
         shell: pwsh
         run: |
-          $expected = Join-Path $PWD "build/RozasWorld.exe"
-          if (!(Test-Path $expected)) {
-            Write-Host "Export output missing. Current build directory:"
-            if (Test-Path "build") { Get-ChildItem -Path build -Recurse -Force | Select-Object FullName,Length }
-            Write-Host "Possible executables in workspace:"
-            Get-ChildItem -Path $PWD -Recurse -Filter *.exe -File |
-              Where-Object { $_.FullName -notmatch '\\.godot\\' -and $_.Name -notmatch '^godot' } |
-              Select-Object FullName,Length
+          $exe = Get-ChildItem -Path build -Filter *.exe -File -Recurse | Select-Object -First 1
+          if ($null -eq $exe) {
+            Write-Host "No executable produced. Full workspace output follows:"
+            Get-ChildItem -Path $PWD -Recurse -Force | Where-Object { $_.FullName -notmatch '\\.godot\\' } | Select-Object FullName,Length
             throw "Windows executable was not produced."
           }
-          Get-Item $expected | Format-List FullName,Length
+          if ($exe.Length -lt 1000000) { throw "Windows executable is unexpectedly small: $($exe.Length) bytes" }
+          Copy-Item $exe.FullName "$PWD\build\RozaWorld.exe" -Force
+          Get-Item "$PWD\build\RozaWorld.exe" | Format-List FullName,Length
 
       - name: Package game
         shell: pwsh
-        run: Compress-Archive -Path build/* -DestinationPath RozaWorld-Windows.zip -Force
+        run: Compress-Archive -Path build\RozaWorld.exe -DestinationPath RozaWorld-Windows.zip -Force
 
       - name: Upload Windows build
         uses: actions/upload-artifact@v4
