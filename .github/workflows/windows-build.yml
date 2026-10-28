@@ -42,11 +42,14 @@ jobs:
         shell: pwsh
         run: |
           Remove-Item godot-validation.log, godot-console.log -Force -ErrorAction SilentlyContinue
-          $godot = (Get-Command godot).Source
-          & $godot --headless --editor --quit --path . --verbose --log-file godot-validation.log 2>&1 | Tee-Object -FilePath godot-console.log
+          $godot = $env:GODOT
+          if (-not $godot) { $godot = "C:\Users\runneradmin\godot\Godot_v4.3-stable_win64.exe" }
+          Write-Host "Using Godot: $godot"
+          & $godot --headless --editor --quit --path . --verbose --log-file godot-validation.log *> godot-console.log
           $code = $LASTEXITCODE
           Write-Host "Godot validation exit code: $code"
           if (Test-Path godot-validation.log) { Get-Content godot-validation.log }
+          if (Test-Path godot-console.log) { Get-Content godot-console.log }
           if ($code -ne 0) { throw "Godot project validation failed with exit code $code." }
 
       - name: Upload Godot diagnostics
@@ -65,10 +68,14 @@ jobs:
           New-Item -ItemType Directory -Force build | Out-Null
           Remove-Item -Path build\* -Force -Recurse -ErrorAction SilentlyContinue
           Remove-Item godot-export.log, godot-export-console.log -Force -ErrorAction SilentlyContinue
-          $godot = (Get-Command godot).Source
-          & $godot --headless --path . --verbose --log-file godot-export.log --export-pack "Windows Desktop" "$PWD\build\RozaWorld.pck" 2>&1 | Tee-Object -FilePath godot-export-console.log
+          $godot = $env:GODOT
+          if (-not $godot) { $godot = "C:\Users\runneradmin\godot\Godot_v4.3-stable_win64.exe" }
+          Write-Host "Using Godot: $godot"
+          & $godot --headless --path . --verbose --log-file godot-export.log --export-pack "Windows Desktop" "$PWD\build\RozaWorld.pck" *> godot-export-console.log
           $code = $LASTEXITCODE
           Write-Host "Godot export exit code: $code"
+          if (Test-Path godot-export.log) { Get-Content godot-export.log }
+          if (Test-Path godot-export-console.log) { Get-Content godot-export-console.log }
           if ($code -ne 0) { throw "Godot PCK export failed with exit code $code." }
           $template = Join-Path $env:APPDATA "Godot/export_templates/4.3.stable/windows_release_x86_64.exe"
           Copy-Item $template "$PWD\build\RozaWorld.exe" -Force
