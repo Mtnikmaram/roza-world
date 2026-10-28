@@ -23,13 +23,27 @@ jobs:
         run: godot --headless --editor --quit
 
       - name: Export Windows
-        run: godot --headless --path . --export-release "Windows Desktop" build/RozasWorld.exe
-
-      - name: Verify build
         shell: pwsh
         run: |
-          if (!(Test-Path "build/RozasWorld.exe")) { throw "Windows executable was not produced." }
-          Get-Item "build/RozasWorld.exe" | Format-List FullName,Length
+          New-Item -ItemType Directory -Force build | Out-Null
+          godot --headless --path . --export-release "Windows Desktop" "build/RozasWorld.exe"
+
+      - name: Verify and normalize build
+        shell: pwsh
+        run: |
+          $expected = Join-Path $PWD "build/RozasWorld.exe"
+          if (!(Test-Path $expected)) {
+            $exe = Get-ChildItem -Path $PWD -Recurse -Filter *.exe -File |
+              Where-Object { $_.FullName -notmatch '\\.godot\\' -and $_.Name -notmatch '^godot' } |
+              Select-Object -First 1
+            if ($null -eq $exe) {
+              Write-Host "No executable found. Repository/build tree:"
+              Get-ChildItem -Path $PWD -Recurse -File | Select-Object FullName,Length
+              throw "Windows executable was not produced."
+            }
+            Copy-Item $exe.FullName $expected -Force
+          }
+          Get-Item $expected | Format-List FullName,Length
 
       - name: Package game
         shell: pwsh
