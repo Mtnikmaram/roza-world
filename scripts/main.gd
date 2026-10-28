@@ -61,7 +61,7 @@ func _input(event):
         queue_redraw()
         return
     if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-        var p := event.position
+        var p: Vector2 = event.position
         if minigame:
             if p.distance_to(target) < 70:
                 minigame_score += 1
