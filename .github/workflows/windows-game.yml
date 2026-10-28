@@ -1,0 +1,32 @@
+name: Build Roza's World for Windows
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'project.godot'
+      - 'main.tscn'
+      - 'scripts/**'
+      - '.github/workflows/windows-game.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build Windows export
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.3.0
+          use-dotnet: false
+      - name: Export
+        run: |
+          mkdir -p build/windows
+          godot --headless --path . --export-release "Windows Desktop" build/windows/RozaWorld.exe
+      - name: Zip
+        run: cd build/windows && zip -r ../../RozaWorld-Windows.zip .
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RozaWorld-Windows
+          path: RozaWorld-Windows.zip
