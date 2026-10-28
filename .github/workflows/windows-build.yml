@@ -47,10 +47,12 @@ jobs:
           $godot = "C:\Users\runneradmin\godot\Godot_v4.3-stable_win64.exe"
           if (-not (Test-Path $godot)) { throw "Godot executable not found at $godot" }
           $pck = Join-Path $PWD "build\RozaWorld.pck"
+          $arguments = '--headless --path . --verbose --log-file godot-export.log --export-pack "Windows Desktop" "' + $pck + '"'
           Write-Host "Using Godot: $godot"
           Write-Host "Export target: $pck"
-          & $godot --headless --path . --verbose --log-file godot-export.log --export-pack '"Windows Desktop"' "$pck"
-          $code = $LASTEXITCODE
+          Write-Host "Arguments: $arguments"
+          $process = Start-Process -FilePath $godot -ArgumentList $arguments -Wait -PassThru -NoNewWindow
+          $code = $process.ExitCode
           Write-Host "Godot process exit code: $code"
           if (Test-Path godot-export.log) { Get-Content godot-export.log }
           if (-not (Test-Path $pck)) { throw "Godot did not create the PCK file." }
