@@ -17,12 +17,19 @@ jobs:
         with:
           version: 4.3.0
           use-dotnet: false
+          include-templates: true
 
       - name: Import project
         run: godot --headless --editor --quit
 
       - name: Export Windows
         run: godot --headless --path . --export-release "Windows Desktop" build/RozasWorld.exe
+
+      - name: Verify build
+        shell: pwsh
+        run: |
+          if (!(Test-Path "build/RozasWorld.exe")) { throw "Windows executable was not produced." }
+          Get-Item "build/RozasWorld.exe" | Format-List FullName,Length
 
       - name: Package game
         shell: pwsh
