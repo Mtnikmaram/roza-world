@@ -43,20 +43,19 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force build | Out-Null
           Remove-Item -Path build\* -Force -Recurse -ErrorAction SilentlyContinue
-          Remove-Item godot-export.log, godot-export-console.log -Force -ErrorAction SilentlyContinue
+          Remove-Item godot-export.log -Force -ErrorAction SilentlyContinue
           $godot = "C:\Users\runneradmin\godot\Godot_v4.3-stable_win64.exe"
           if (-not (Test-Path $godot)) { throw "Godot executable not found at $godot" }
           $pck = Join-Path $PWD "build\RozaWorld.pck"
           Write-Host "Using Godot: $godot"
           Write-Host "Export target: $pck"
-          $args = @("--headless", "--path", ".", "--verbose", "--log-file", "godot-export.log", "--export-pack", "Windows Desktop", $pck)
-          $proc = Start-Process -FilePath $godot -ArgumentList $args -WorkingDirectory $PWD -Wait -PassThru -NoNewWindow
-          Write-Host "Godot process exit code: $($proc.ExitCode)"
+          & $godot --headless --path . --verbose --log-file godot-export.log --export-pack "Windows Desktop" "$pck"
+          $code = $LASTEXITCODE
+          Write-Host "Godot process exit code: $code"
           if (Test-Path godot-export.log) { Get-Content godot-export.log }
-          if (Test-Path godot-export-console.log) { Get-Content godot-export-console.log }
           if (-not (Test-Path $pck)) { throw "Godot did not create the PCK file." }
           if ((Get-Item $pck).Length -lt 1000) { throw "PCK was not generated correctly." }
-          if ($proc.ExitCode -ne 0) { throw "Godot export failed with exit code $($proc.ExitCode)." }
+          if ($code -ne 0) { throw "Godot export failed with exit code $code." }
           $template = Join-Path $env:APPDATA "Godot/export_templates/4.3.stable/windows_release_x86_64.exe"
           Copy-Item $template "$PWD\build\RozaWorld.exe" -Force
           $exe = Get-Item "$PWD\build\RozaWorld.exe"
@@ -69,9 +68,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: godot-export-diagnostics
-          path: |
-            godot-export.log
-            godot-export-console.log
+          path: godot-export.log
           if-no-files-found: ignore
 
       - name: Package game
